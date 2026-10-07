@@ -8,46 +8,18 @@ router.get("/", async function (req, res, next) {
   try {
     const db = await connectToDB();
 
-    let highlighted = await db
+    let rawHighlighted = await db
       .collection("events")
       .find({ isHighlighted: true })
       .toArray();
+    let rawUpcoming = await get_upcoming_event(db);
+    let rawTrending = await get_trending_events(db);
 
-    highlighted = await Promise.all(
-      highlighted.map(async (event) => {
-        const venueName = await get_venue_by_id(db, event.venue);
-        const formattedDate = formatted_Date(event.dateTime);
-
-        return {
-          ...event,
-          venueName: venueName || "TBD",
-          formattedDate: formattedDate,
-        };
-      }),
-    );
-    let upcoming = await get_upcoming_event(db);
-
-    upcoming = await Promise.all(
-      upcoming.map((event) => {
-        const formattedDate = formatted_Date(event.dateTime);
-        return {
-          ...event,
-          formattedDate: formattedDate,
-        };
-      }),
-    );
-
-    let trending = await get_trending_events(db);
-
-    trending = await Promise.all(
-      trending.map((event) => {
-        const formattedDate = formatted_Date(event.dateTime);
-        return {
-          ...event,
-          formattedDate: formattedDate,
-        };
-      }),
-    );
+    const [highlighted, upcoming, trending] = await Promise.all([
+      enrich_event_details(db, rawHighlighted),
+      enrich_event_details(db, rawUpcoming),
+      enrich_event_details(db, rawTrending),
+    ]);
 
     res.render("index", {
       highlightedBookings: highlighted,
@@ -59,16 +31,6 @@ router.get("/", async function (req, res, next) {
   }
 });
 
-function formatted_Date(date) {
-  return new Date(date).toLocaleString("en-US", {
-    month: "short", // "Nov"
-    day: "numeric", // "1"
-    year: "numeric", // "2026"
-    hour: "numeric", // "10"
-    minute: "2-digit", // "00"
-    hour12: true, // "AM/PM")
-  });
-}
 // testing for only get highlighted event
 router.get("/highlight", async function (req, res, next) {
   const db = await connectToDB();
@@ -158,14 +120,17 @@ async function get_trending_events(db) {
 
 // to all event page
 router.get("/events", async function (req, res) {
-  const db = await connectToDB();
   try {
-    let results = await db.collection("events").find().toArray();
+    const db = await connectToDB();
+    const rawResults = await db.collection("events").find().toArray();
+    const results = await enrich_event_details(db, rawResults);
     res.render("events", { events: results });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
+
+// create event
 
 // to all venue page
 router.get("/venues", async function (req, res) {
@@ -178,4 +143,35 @@ router.get("/venues", async function (req, res) {
   }
 });
 
+// helper function to map venue name and format date
+async function enrich_event_details(db, eventsArray) {
+  if (!Array.isArray(eventsArray) || eventsArray.length === 0) {
+    return [];
+  }
+
+  return await Promise.all(
+    eventsArray.map(async (event) => {
+      const venueName = await get_venue_by_id(db, event.venue);
+      const formattedDate = formatted_Date(event.dateTime);
+
+      return {
+        ...event,
+        venueName: venueName || "TBD",
+        formattedDate: formattedDate,
+      };
+    }),
+  );
+}
+
+//helper function to format date
+function formatted_Date(date) {
+  return new Date(date).toLocaleString("en-US", {
+    month: "short", // "Nov"
+    day: "numeric", // "1"
+    year: "numeric", // "2026"
+    hour: "numeric", // "10"
+    minute: "2-digit", // "00"
+    hour12: true, // "AM/PM")
+  });
+}
 module.exports = router;

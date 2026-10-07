@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SciFac Events - All Events</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .main-content {
+      flex: 1;
+    }
+    .badge-status-upcoming {
+      background-color: #198754; /* Bootstrap success green */
+      font-weight: 500;
+    }
+    .badge-category {
+      background-color: #0d6efd; /* Bootstrap primary blue */
+      font-weight: 500;
+    }
+    .event-card {
+      border: 1px solid #eaeaea;
+      border-radius: 8px;
+      transition: shadow 0.2s ease-in-out;
+    }
+    .event-card:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <!-- get to all event page button  -->
+      <a class="navbar-brand d-flex align-items-center gap-2" href="/"> 
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          fill="#0d6efd"
+          class="bi bi-flask-fill"
+          viewBox="0 0 16 16"
+        >
+          <path
+            d="M4.085 1H11.915C12.35 1 12.5 1.458 12.186 1.743L10.5 3.28V7.32l3.414 5.69c.473.788-.1 1.99-1.026 1.99H3.112c-.926 0-1.5-1.202-1.026-1.99L5.5 7.32V3.28L3.814 1.743C3.5 1.458 3.65 1 4.085 1z"
+          />
+        </svg>
+        SciFac Events
+      </a>
+
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#navbarSupportedContent"
+        aria-controls="navbarSupportedContent"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-2">
+          <li class="nav-item">
+            <a class="nav-link" href="/">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="/events">Events</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/venues">Venues</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main class="container-fluid px-4 py-4 main-content">
+    
+    <!-- Header Row -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="fw-bold m-0 d-flex align-items-center gap-2 text-dark fs-3">
+        <i class="bi bi-list-task"></i>
+        All Events
+      </h2>
+      <a href="/events/add" class="btn btn-primary d-flex align-items-center gap-2 px-3 py-2 fw-medium">
+        <i class="bi bi-plus-lg"></i>
+        Create Event
+      </a>
+    </div>
+
+    <!-- Events Cards Grid -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+      <% if (typeof events !== 'undefined' && events.length > 0) { %>
+        <% events.forEach(function(event) { %>
+          <div class="col">
+            <div class="card h-100 bg-white p-3 event-card shadow-sm border-0">
+              <div class="card-body p-0 d-flex flex-column">
+                
+                <!-- Badges Row -->
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="badge badge-status-upcoming rounded-2 px-2 py-1">
+                    <%= event.status%>
+                  </span>
+                  <% if (event.category) { %>
+                    <span class="badge badge-category rounded-2 px-2 py-1">
+                      <%= event.category %>
+                    </span>
+                  <% } %>
+                </div>
+
+                <!-- Event Title -->
+                <h5 class="card-title fw-bold text-dark mb-3 mt-1">
+                  <%= event.title %>
+                </h5>
+
+                <!-- Event Date & Time -->
+                <p class="card-text text-secondary small mb-2 d-flex align-items-center gap-2">
+                  <i class="bi bi-calendar-event"></i>
+                  <%= event.formattedDate%>
+                </p>
+
+                <!-- Event Venue -->
+                <p class="card-text text-secondary small mb-4 d-flex align-items-center gap-2">
+                  <i class="bi bi-geo-alt"></i>
+                  <%= event.venueName%>
+                </p>
+
+                <!-- Action Buttons Row -->
+                <div class="mt-auto d-flex gap-2">
+                  <a href="/event/detail/<%= event._id %>" class="btn btn-outline-primary flex-grow-1 fw-medium py-1">
+                    View
+                  </a>
+                  <a href="/event/edit/<%= event._id %>" class="btn btn-outline-secondary px-2 py-1 d-flex align-items-center justify-content-center">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        <% }); %>
+      <% } else { %>
+        <!-- Fallback if no events exist -->
+        <div class="col-12">
+          <div class="alert alert-light border text-center py-5 text-muted">
+            No events found. Click "Create Event" to add a new event.
+          </div>
+        </div>
+      <% } %>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-dark text-white-50 text-center py-3 fs-7">
+    <div class="container">
+      <small>© 2026 Science Faculty Event Management System. All rights reserved.</small>
+    </div>
+  </footer>
+
+  <!-- Bootstrap 5 JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
