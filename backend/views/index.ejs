@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="zh-Hant-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>網頁標題</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/stylesheets/style.css" />
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container-fluid">
+        <!-- get to all event page button  -->
+        <a class="navbar-brand d-flex align-items-center gap-2"> 
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            fill="#0d6efd"
+            class="bi bi-flask-fill"
+            viewBox="0 0 16 16"
+          >
+            <path
+              d="M4.085 1H11.915C12.35 1 12.5 1.458 12.186 1.743L10.5 3.28V7.32l3.414 5.69c.473.788-.1 1.99-1.026 1.99H3.112c-.926 0-1.5-1.202-1.026-1.99L5.5 7.32V3.28L3.814 1.743C3.5 1.458 3.65 1 4.085 1z"
+            />
+          </svg>
+          SciFac Events
+        </a>
+
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarSupportedContent"
+          aria-controls="navbarSupportedContent"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-2">
+            <li class="nav-item">
+              <a class="nav-link active" aria-current="page" href="/">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/events">Events</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/venues">Venues</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- carousel -->
+<div class="container-fluid px-4 my-4">
+  <div
+    id="carouselExample"
+    class="carousel slide mx-auto"
+    data-bs-ride="carousel"
+    style="width: 90%; border-radius: 12px; overflow: hidden"
+  >
+    <div class="carousel-inner">
+      <% if (typeof highlightedBookings !== 'undefined' && highlightedBookings.length > 0) { %>
+        <% highlightedBookings.forEach(function(highlight, index) { %>
+          <div class="carousel-item <%= index === 0 ? 'active' : '' %>">
+            <!-- 圖片與預設圖片 Fallback -->
+            <img
+              src="<%= highlight.bannerImage %>"
+              onerror="this.onerror=null; this.src='/stylesheets/images/pexels-beach-tropical-scene-free-stock-photo.jpg';"
+              class="d-block w-100"
+              alt="<%= highlight.title %>"
+              style="height: 400px; object-fit: cover"
+            />
+            
+            <!-- 文字覆蓋區塊 -->
+            <div class="carousel-caption custom-overlay-box">
+              <h2 class="fw-bold text-white mb-2"><%= highlight.title %></h2>
+              <p class="mb-3 text-light opacity-75 fs-6">
+                <%= highlight.formattedDate %> 
+                <% if (highlight.venue) { %> - <%= highlight.venueName%><% } %>
+              </p>
+              <!-- 修正後的動態連結 -->
+              <a href="/events/detail/<%= highlight._id %>" class="btn btn-primary px-4 py-2">
+                View Details
+              </a>
+            </div>
+          </div>
+        <% }); %>
+      <% } else { %>
+        <!-- 萬一資料庫完全沒有 highlighted 資料時的備用項目 -->
+        <div class="carousel-item active">
+          <img
+            src="/stylesheets/images/pexels-beach-tropical-scene-free-stock-photo.jpg"
+            class="d-block w-100"
+            alt="Default Banner"
+            style="height: 400px; object-fit: cover"
+          />
+          <div class="carousel-caption custom-overlay-box">
+            <h2 class="fw-bold text-white mb-2">Welcome to Events</h2>
+            <p class="mb-3 text-light opacity-75 fs-6">No highlighted events currently available.</p>
+          </div>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- 控制按鈕 -->
+    <button
+      class="carousel-control-prev"
+      type="button"
+      data-bs-target="#carouselExample"
+      data-bs-slide="prev"
+    >
+      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Previous</span>
+    </button>
+    <button
+      class="carousel-control-next"
+      type="button"
+      data-bs-target="#carouselExample"
+      data-bs-slide="next"
+    >
+      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Next</span>
+    </button>
+  </div>
+</div>
+<!-- end of carousel  -->
+
+ <!-- upcoming event  -->
+    <div class="container-fluid px-4 my-5">
+      <!-- 標題區塊 -->
+      <h2 class="fw-bold mb-4 d-flex align-items-center gap-2">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="28"
+          height="28"
+          fill="#0d6efd"
+          class="bi bi-calendar-event"
+          viewBox="0 0 16 16"
+        >
+          <path
+            d="M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5z"
+          />
+          <path
+            d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z"
+          />
+        </svg>
+        Upcoming Events
+      </h2>
+
+      <!-- 卡片網格 (桌機版一排 3 張: row-cols-lg-3, 手機版一排 1 張: row-cols-1) -->
+      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        <% if (typeof upcoming_events !== 'undefined' && upcoming_events.length > 0) { %>
+        <% upcoming_events.forEach(function(event) { %>
+        <div class="col">
+          <div class="card h-100 shadow-sm border-0 rounded-3 overflow-hidden">
+            <img
+              src="<%= event.bannerImage %>"
+              class="card-img-top"
+              alt="<%= event.title %>"
+              style="height: 180px; object-fit: cover"
+            />
+            <div class="card-body d-flex flex-column p-3">
+              <div>
+                <% if (event.category) { %>
+                <span class="badge bg-secondary mb-2 opacity-75 fw-normal"
+                  ><%= event.category%></span
+                ><% } %>
+                <h5 class="card-title fw-bold text-dark mb-2"><%= event.title %></h5>
+                <p
+                  class="card-text text-muted small mb-3 d-flex align-items-center gap-1"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    fill="currentColor"
+                    class="bi bi-clock"
+                    viewBox="0 0 16 16"
+                  >
+                    <path
+                      d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71z"
+                    />
+                    <path
+                      d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0"
+                    />
+                  </svg>
+                  <%= event.formattedDate%>
+                </p>
+              </div>
+              <a href="/events/1" class="btn btn-outline-primary w-100 mt-auto"
+                >Details</a
+              >
+            </div>
+          </div>
+        </div>
+        <% } ) } %>
+      </div>
+<!-- end of upcoming event -->
+      
+
+
+
+  <!-- trending event -->
+<div class="container-fluid px-4 my-5">
+  <!-- 標題區塊 -->
+  <h2 class="fw-bold mb-4 d-flex align-items-center gap-2">
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="#0d6efd" class="bi bi-fire" viewBox="0 0 16 16">
+      <path d="M8 16c3.314 0 6-2 6-5.5 0-1.5-.5-4-2.5-6 .25 1.5-1.25 2-1.25 2C11 4 9 .5 6 0c.357 2 .5 4-2 6-1.25 1-2 2.729-2 4.5C2 14 4.686 16 8 16Zm0-1c-1.657 0-3-1-3-2.75 0-.75.25-2 1.25-3C6.125 10 7 10.5 7 10.5c.375-1.25 1.5-2 3-2-.375 1.5.5 2.5 1 3 .625.625 1 1.375 1 2.25C12 14 10.657 15 8 15Z"/>
+    </svg>
+    Trending Events
+  </h2>
+
+  <!-- 1. 外層必須是 row，且定義每排顯示幾列 (row-cols-1 row-cols-md-2 row-cols-lg-3) -->
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    <% if (typeof trending_events !== 'undefined' && trending_events.length > 0) { %>
+      <!-- 2. forEach 迴圈必須在 row 的內部，並且包裹著單獨的 col -->
+      <% trending_events.forEach(function(event) { %>
+        <div class="col">
+          <div class="card h-100 shadow-sm border-0 rounded-3 overflow-hidden">
+            <img
+              src="<%= event.bannerImage %>"
+              onerror="this.onerror=null; this.src='/stylesheets/images/pexels-beach-tropical-scene-free-stock-photo.jpg';"
+              class="card-img-top"
+              alt="<%= event.title %>"
+              style="height: 180px; object-fit: cover;"
+            />
+            <div class="card-body d-flex flex-column p-3">
+              <div>
+                <% if (event.category) { %>
+                  <span class="badge bg-secondary mb-2 opacity-75 fw-normal">
+                    <%= event.category %>
+                  </span>
+                <% } %>
+                <h5 class="card-title fw-bold text-dark mb-2"><%= event.title %></h5>
+                <p class="card-text text-muted small mb-3 d-flex align-items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-clock" viewBox="0 0 16 16">
+                    <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71z"/>
+                    <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0"/>
+                  </svg>
+                  <%= event.formattedDate %>
+                </p>
+              </div>
+              <a href="/events/detail/<%= event._id %>" class="btn btn-outline-primary w-100 mt-auto">
+                Details
+              </a>
+            </div>
+          </div>
+        </div>
+      <% }); %>
+    <% } %>
+  </div>
+</div>
+  </body>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</html>

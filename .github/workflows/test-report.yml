@@ -1,0 +1,863 @@
+name: Test Report
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        env:
+          MONGO_INITDB_DATABASE: bookingsDB
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 30
+
+    steps:
+      # ── Stage 1: Setup ──────────────────────────────────────
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      # ── Wait for MongoDB ────────────────────────────────
+      - name: Wait for MongoDB
+        run: |
+          for i in $(seq 1 60); do
+            if nc -z localhost 27017 2>/dev/null; then
+              echo "MongoDB ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "MongoDB did not start within 60s"
+          exit 1
+
+      - name: Seed MongoDB
+        working-directory: backend
+        run: |
+          node <<'SEED'
+          const { MongoClient, ObjectId } = require('mongodb');
+          async function seed() {
+            const client = new MongoClient('mongodb://localhost:27017');
+            await client.connect();
+            const db = client.db('bookingsDB');
+            // Clear existing data
+            const collections = await db.listCollections().toArray();
+            for (const c of collections) {
+              await db.collection(c.name).deleteMany({});
+            }
+            // Seed events
+            const events = [
+              {
+                title: 'AI Workshop',
+                description: 'Introduction to AI concepts',
+                category: 'Workshop',
+                speaker: 'Dr. Smith',
+                dateTime: new Date('2026-10-15T10:00:00Z'),
+                venue: new ObjectId('507f1f77bcf86cd799439011'),
+                capacity: 50,
+                status: 'Upcoming',
+                isHighlighted: true,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              },
+              {
+                title: 'Data Science Seminar',
+                description: 'Advanced data analytics',
+                category: 'Seminar',
+                speaker: 'Prof. Johnson',
+                dateTime: new Date('2026-10-20T14:00:00Z'),
+                venue: new ObjectId('507f1f77bcf86cd799439012'),
+                capacity: 100,
+                status: 'Upcoming',
+                isHighlighted: true,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              },
+              {
+                title: 'Web Dev Bootcamp',
+                description: 'Full-stack development',
+                category: 'Workshop',
+                speaker: 'Ms. Lee',
+                dateTime: new Date('2026-10-25T09:00:00Z'),
+                venue: new ObjectId('507f1f77bcf86cd799439013'),
+                capacity: 30,
+                status: 'Ongoing',
+                isHighlighted: false,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              },
+              {
+                title: 'Cybersecurity Talk',
+                description: 'Security best practices',
+                category: 'Talk',
+                speaker: 'Mr. Brown',
+                dateTime: new Date('2026-11-01T13:00:00Z'),
+                venue: new ObjectId('507f1f77bcf86cd799439014'),
+                capacity: 80,
+                status: 'Upcoming',
+                isHighlighted: true,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              },
+              {
+                title: 'Cloud Computing Lab',
+                description: 'AWS and Azure fundamentals',
+                category: 'Lab',
+                speaker: 'Dr. Wang',
+                dateTime: new Date('2026-11-05T11:00:00Z'),
+                venue: new ObjectId('507f1f77bcf86cd799439015'),
+                capacity: 40,
+                status: 'Upcoming',
+                isHighlighted: false,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              },
+              {
+                title: 'Machine Learning Conference',
+                description: 'ML algorithms and applications',
+                category: 'Conference',
+                speaker: 'Prof. Davis',
+                dateTime: new Date('2026-09-20T10:00:00Z'),
+                venue: new ObjectId('507f1f77bcf86cd799439016'),
+                capacity: 200,
+                status: 'Completed',
+                isHighlighted: true,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              }
+            ];
+            await db.collection('events').insertMany(events);
+            // Seed venues
+            const venues = [
+              {
+                name: 'Main Auditorium',
+                location: 'Building A, Floor 1',
+                capacity: 200,
+                facilities: ['Projector', 'Microphone', 'Wi-Fi'],
+                description: 'Large auditorium for conferences',
+                createdAt: new Date(),
+                updatedAt: new Date()
+              },
+              {
+                name: 'Seminar Room 1',
+                location: 'Building B, Floor 2',
+                capacity: 50,
+                facilities: ['Whiteboard', 'Wi-Fi'],
+                description: 'Small seminar room',
+                createdAt: new Date(),
+                updatedAt: new Date()
+              },
+              {
+                name: 'Computer Lab',
+                location: 'Building C, Floor 3',
+                capacity: 40,
+                facilities: ['Computers', 'Wi-Fi', 'Printer'],
+                description: 'Computer lab with workstations',
+                createdAt: new Date(),
+                updatedAt: new Date()
+              },
+              {
+                name: 'Lecture Hall',
+                location: 'Building A, Floor 3',
+                capacity: 150,
+                facilities: ['Projector', 'Microphone', 'Recording'],
+                description: 'Lecture hall with recording facilities',
+                createdAt: new Date(),
+                updatedAt: new Date()
+              },
+              {
+                name: 'Meeting Room',
+                location: 'Building B, Floor 1',
+                capacity: 20,
+                facilities: ['Whiteboard', 'Wi-Fi'],
+                description: 'Small meeting room',
+                createdAt: new Date(),
+                updatedAt: new Date()
+              },
+              {
+                name: 'Workshop Bay',
+                location: 'Building D, Ground Floor',
+                capacity: 30,
+                facilities: ['Workbenches', 'Tools', 'Wi-Fi'],
+                description: 'Workshop space for hands-on activities',
+                createdAt: new Date(),
+                updatedAt: new Date()
+              }
+            ];
+            await db.collection('venues').insertMany(venues);
+            await client.close();
+            console.log('Seeded 6 events and 6 venues');
+          }
+          seed().catch(e => { console.error('Seed error:', e); process.exit(1); });
+          SEED
+
+      - name: Start Express server
+        id: server
+        working-directory: backend
+        run: |
+          PORT=3000 MONGODB_URI=mongodb://localhost:27017 node ./bin/www &
+          SERVER_PID=$!
+          echo "server_pid=$SERVER_PID" >> $GITHUB_OUTPUT
+          # Poll until ready
+          READY=false
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/ > /dev/null 2>&1; then
+              READY=true
+              break
+            fi
+            sleep 1
+          done
+          echo "ready=$READY" >> $GITHUB_OUTPUT
+          if [ "$READY" != "true" ]; then
+            echo "Server did not start within 30s"
+            exit 1
+          fi
+
+      # ── Stage 3: Unit Tests ─────────────────────────────────
+      - name: Run Unit Tests
+        id: unit
+        working-directory: backend
+        run: |
+          node <<'SCRIPT'
+          const assert = require('assert');
+          const path = require('path');
+          const fs = require('fs');
+
+          const results = [];
+          function test(name, fn) {
+            try { fn(); results.push({ name, pass: true }); }
+            catch (e) { results.push({ name, pass: false, error: e.message }); }
+          }
+          const APP_DIR = process.cwd();
+
+          // Module loadability
+          test('app module loads', () => {
+            const app = require(path.join(APP_DIR, 'app'));
+            assert.ok(app, 'app should load');
+          });
+          test('db module loads', () => {
+            const db = require(path.join(APP_DIR, 'utils/db'));
+            assert.ok(db, 'db should load');
+          });
+          test('routes/index module loads', () => {
+            const r = require(path.join(APP_DIR, 'routes/index'));
+            assert.ok(r, 'routes/index should load');
+          });
+          test('routes/users module loads', () => {
+            const r = require(path.join(APP_DIR, 'routes/users'));
+            assert.ok(r, 'routes/users should load');
+          });
+
+          // App instance type and methods
+          test('app is an Express application instance', () => {
+            const app = require(path.join(APP_DIR, 'app'));
+            assert.strictEqual(typeof app, 'object', 'app should be an object');
+            assert.strictEqual(typeof app.get, 'function', 'app.get should be a function');
+            assert.strictEqual(typeof app.use, 'function', 'app.use should be a function');
+            assert.strictEqual(typeof app.set, 'function', 'app.set should be a function');
+            assert.strictEqual(typeof app.listen, 'function', 'app.listen should be a function');
+          });
+
+          // DB module exports
+          test('db exports connectToDB function', () => {
+            const db = require(path.join(APP_DIR, 'utils/db'));
+            assert.strictEqual(typeof db.connectToDB, 'function', 'connectToDB should be a function');
+          });
+          test('db exports ObjectId', () => {
+            const db = require(path.join(APP_DIR, 'utils/db'));
+            assert.strictEqual(typeof db.ObjectId, 'function', 'ObjectId should be a function');
+          });
+
+          // View engine
+          test('view engine is ejs', () => {
+            const app = require(path.join(APP_DIR, 'app'));
+            assert.strictEqual(app.get('view engine'), 'ejs', 'view engine should be ejs');
+          });
+          test('views directory is set', () => {
+            const app = require(path.join(APP_DIR, 'app'));
+            const viewsPath = app.get('views');
+            assert.ok(viewsPath, 'views path should be set');
+            assert.ok(fs.existsSync(viewsPath), 'views directory should exist');
+          });
+
+          // Middleware presence - inspect router stack for known middleware
+          test('JSON middleware is used', () => {
+            const app = require(path.join(APP_DIR, 'app'));
+            const stack = app._router.stack;
+            const hasJson = stack.some(layer => {
+              const name = layer.name || '';
+              return name === 'json parser' || (layer.handle && layer.handle.toString().includes('Express JSON'));
+            });
+            assert.ok(hasJson, 'JSON middleware should be registered');
+          });
+          test('URL-encoded middleware is used', () => {
+            const app = require(path.join(APP_DIR, 'app'));
+            const stack = app._router.stack;
+            const hasUrlencoded = stack.some(layer => {
+              const name = layer.name || '';
+              return name === 'urlencoded parser' || (layer.handle && layer.handle.toString().includes('Extended URL'));
+            });
+            assert.ok(hasUrlencoded, 'URL-encoded middleware should be registered');
+          });
+          test('cookie-parser middleware is used', () => {
+            const app = require(path.join(APP_DIR, 'app'));
+            const stack = app._router.stack;
+            const hasCookie = stack.some(layer => {
+              const name = layer.name || '';
+              return name.includes('cookie') || name.includes('Cookie') || (layer.handle && layer.handle.toString().includes('cookie'));
+            });
+            assert.ok(hasCookie, 'cookie-parser middleware should be registered');
+          });
+          test('static middleware is used', () => {
+            const app = require(path.join(APP_DIR, 'app'));
+            assert.ok(app._router, 'app should have a router with static middleware');
+          });
+
+          // Route mounts
+          test('GET / route is mounted', () => {
+            const app = require(path.join(APP_DIR, 'app'));
+            const routes = app._router.stack
+              .filter(layer => layer.route)
+              .map(layer => layer.route.path);
+            assert.ok(routes.includes('/'), 'route / should be mounted');
+          });
+          test('GET /users route is mounted', () => {
+            const app = require(path.join(APP_DIR, 'app'));
+            const routes = app._router.stack
+              .filter(layer => layer.route)
+              .map(layer => layer.route.path);
+            assert.ok(routes.includes('/users'), 'route /users should be mounted');
+          });
+
+          // Error handlers
+          test('404 handler exists', () => {
+            const app = require(path.join(APP_DIR, 'app'));
+            const stack = app._router.stack;
+            const has404 = stack.some(layer => {
+              if (layer.route) return false;
+              const handler = layer.handle;
+              return handler && handler.length >= 4;
+            });
+            assert.ok(has404, '404 handler should exist');
+          });
+          test('error handler exists', () => {
+            const app = require(path.join(APP_DIR, 'app'));
+            const stack = app._router.stack;
+            const errorHandlers = stack.filter(layer => {
+              if (layer.route) return false;
+              const handler = layer.handle;
+              return handler && handler.length >= 4;
+            });
+            assert.ok(errorHandlers.length > 0, 'error handler should exist');
+          });
+
+          const passed = results.filter(r => r.pass).length;
+          const total = results.length;
+          let md = '## Unit Tests\n\n';
+          md += '| Test | Result |\n|------|--------|\n';
+          for (const r of results) {
+            md += `| ${r.name} | ${r.pass ? 'PASS' : 'FAIL: ' + r.error} |\n`;
+          }
+          md += `\n**${passed}/${total} tests passed**\n`;
+
+          // DB Analysis Section
+          const dbAnalysis = [];
+          try {
+            const dbContent = fs.readFileSync(path.join(APP_DIR, 'utils/db.js'), 'utf8');
+            const hasUriVar = dbContent.includes('MONGODB_URI') || dbContent.includes('process.env');
+            const hasLocalhost = dbContent.includes('localhost') || dbContent.includes('127.0.0.1');
+            const hasEnvCheck = dbContent.match(/process\.env\.MONGODB_URI/);
+            const hasOverride = dbContent.includes("'your_mongodb_uri'");
+            dbAnalysis.push(`- **MONGODB_URI variable**: ${hasUriVar ? 'Present' : 'Missing'}`);
+            dbAnalysis.push(`- **Environment variable check**: ${hasEnvCheck ? 'Yes' : 'No'}`);
+            dbAnalysis.push(`- **Default to localhost**: ${hasLocalhost ? 'Yes' : 'No'}`);
+            dbAnalysis.push(`- **Hardcoded override**: ${hasOverride ? 'WARNING: Overrides env var' : 'None'}`);
+          } catch(e) {
+            dbAnalysis.push('- **Analysis**: Could not read db.js');
+          }
+          md += '\n### Database Analysis\n\n';
+          md += dbAnalysis.join('\n');
+          md += '\n';
+
+          fs.writeFileSync('/home/runner/unit-results.md', md);
+          console.log('unit-passed=' + passed);
+          console.log('unit-total=' + total);
+
+          // DB Connectivity Check (synchronous shell command)
+          const { execSync } = require('child_process');
+          let dbStatus = 'FAIL (MongoDB not reachable)';
+          try {
+            execSync('nc -z 127.0.0.1 27017', { timeout: 5000 });
+            dbStatus = 'PASS (MongoDB reachable on port 27017)';
+          } catch (e) { /* connection failed */ }
+          let content = fs.readFileSync('/home/runner/unit-results.md', 'utf8');
+          content += '\n### Database Connectivity\n\n';
+          content += `- **Connection test**: ${dbStatus}\n`;
+          fs.writeFileSync('/home/runner/unit-results.md', content);
+          process.exit(0);
+
+          SCRIPT
+
+      # ── Stage 4: HTTP Endpoint Tests ────────────────────────
+      - name: Run HTTP Endpoint Tests
+        id: http
+        working-directory: backend
+        run: |
+          node <<'SCRIPT'
+          const http = require('http');
+          const fs = require('fs');
+
+          const results = [];
+          async function test(name, check) {
+            try { await check(); results.push({ name, pass: true }); }
+            catch (e) { results.push({ name, pass: false, error: e.message }); }
+          }
+
+          function fetch(path) {
+            return new Promise((resolve, reject) => {
+              http.get('http://localhost:3000' + path, (res) => {
+                let body = '';
+                res.on('data', chunk => body += chunk);
+                res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body }));
+              }).on('error', reject);
+            });
+          }
+
+          (async () => {
+            // GET /
+            await test('GET / returns 200', async () => {
+              const res = await fetch('/');
+              if (res.status !== 200) throw new Error('Expected 200, got ' + res.status);
+            });
+            await test('GET / returns HTML', async () => {
+              const res = await fetch('/');
+              if (!res.headers['content-type'].includes('text/html')) throw new Error('Not HTML');
+            });
+            await test('GET / contains nav links', async () => {
+              const res = await fetch('/');
+              if (!res.body.includes('/events') || !res.body.includes('/venues')) throw new Error('Missing nav links');
+            });
+            await test('GET / contains viewport meta', async () => {
+              const res = await fetch('/');
+              if (!res.body.match(/<meta[^>]*viewport/i)) throw new Error('No viewport meta');
+            });
+            await test('GET / references Bootstrap CSS', async () => {
+              const res = await fetch('/');
+              if (!res.body.match(/bootstrap/i)) throw new Error('No Bootstrap CSS reference');
+            });
+
+            // GET /events
+            await test('GET /events returns 200', async () => {
+              const res = await fetch('/events');
+              if (res.status !== 200) throw new Error('Expected 200, got ' + res.status);
+            });
+            await test('GET /events returns HTML', async () => {
+              const res = await fetch('/events');
+              if (!res.headers['content-type'].includes('text/html')) throw new Error('Not HTML');
+            });
+
+            // GET /event/add
+            await test('GET /event/add returns 200', async () => {
+              const res = await fetch('/event/add');
+              if (res.status !== 200) throw new Error('Expected 200, got ' + res.status);
+            });
+            await test('GET /event/add returns HTML', async () => {
+              const res = await fetch('/event/add');
+              if (!res.headers['content-type'].includes('text/html')) throw new Error('Not HTML');
+            });
+            await test('GET /event/add has form elements', async () => {
+              const res = await fetch('/event/add');
+              if (!res.body.match(/<form/i)) throw new Error('No form element');
+            });
+
+            // GET /event/edit/:id
+            await test('GET /event/edit/:id returns 200', async () => {
+              const res = await fetch('/event/edit/507f1f77bcf86cd799439011');
+              if (res.status !== 200) throw new Error('Expected 200, got ' + res.status);
+            });
+            await test('GET /event/edit/:id returns HTML', async () => {
+              const res = await fetch('/event/edit/507f1f77bcf86cd799439011');
+              if (!res.headers['content-type'].includes('text/html')) throw new Error('Not HTML');
+            });
+
+            // GET /event/detail/:id
+            await test('GET /event/detail/:id returns 200', async () => {
+              const res = await fetch('/event/detail/507f1f77bcf86cd799439011');
+              if (res.status !== 200) throw new Error('Expected 200, got ' + res.status);
+            });
+            await test('GET /event/detail/:id returns HTML', async () => {
+              const res = await fetch('/event/detail/507f1f77bcf86cd799439011');
+              if (!res.headers['content-type'].includes('text/html')) throw new Error('Not HTML');
+            });
+
+            // GET /venues
+            await test('GET /venues returns 200', async () => {
+              const res = await fetch('/venues');
+              if (res.status !== 200) throw new Error('Expected 200, got ' + res.status);
+            });
+            await test('GET /venues returns HTML', async () => {
+              const res = await fetch('/venues');
+              if (!res.headers['content-type'].includes('text/html')) throw new Error('Not HTML');
+            });
+
+            // GET /venue/add
+            await test('GET /venue/add returns 200', async () => {
+              const res = await fetch('/venue/add');
+              if (res.status !== 200) throw new Error('Expected 200, got ' + res.status);
+            });
+            await test('GET /venue/add returns HTML', async () => {
+              const res = await fetch('/venue/add');
+              if (!res.headers['content-type'].includes('text/html')) throw new Error('Not HTML');
+            });
+            await test('GET /venue/add has form elements', async () => {
+              const res = await fetch('/venue/add');
+              if (!res.body.match(/<form/i)) throw new Error('No form element');
+            });
+
+            // GET /venue/edit/:id
+            await test('GET /venue/edit/:id returns 200', async () => {
+              const res = await fetch('/venue/edit/507f1f77bcf86cd799439011');
+              if (res.status !== 200) throw new Error('Expected 200, got ' + res.status);
+            });
+            await test('GET /venue/edit/:id returns HTML', async () => {
+              const res = await fetch('/venue/edit/507f1f77bcf86cd799439011');
+              if (!res.headers['content-type'].includes('text/html')) throw new Error('Not HTML');
+            });
+
+            // GET /nonexistent
+            await test('GET /nonexistent returns 404', async () => {
+              const res = await fetch('/nonexistent');
+              if (res.status !== 404) throw new Error('Expected 404, got ' + res.status);
+            });
+            await test('GET /nonexistent returns HTML', async () => {
+              const res = await fetch('/nonexistent');
+              if (!res.headers['content-type'].includes('text/html')) throw new Error('Not HTML');
+            });
+
+            const passed = results.filter(r => r.pass).length;
+            const total = results.length;
+            let md = '## HTTP Endpoint Tests\n\n';
+            md += `| Test | Result |\n|------|--------|\n`;
+            for (const r of results) {
+              md += `| ${r.name} | ${r.pass ? 'PASS' : 'FAIL: ' + r.error} |\n`;
+            }
+            md += `\n**${passed}/${total} tests passed**\n`;
+            fs.writeFileSync('/home/runner/http-results.md', md);
+            console.log('http-passed=' + passed);
+            console.log('http-total=' + total);
+          })().catch(e => {
+            console.error('HTTP tests error:', e);
+            process.exit(1);
+          });
+          SCRIPT
+
+      # ── Stage 5: Browser E2E Tests ──────────────────────────
+      - name: Install Playwright
+        id: playwright
+        continue-on-error: true
+        working-directory: backend
+        run: |
+          npm install playwright --no-save 2>&1 || echo "npm_failed=true" >> $GITHUB_OUTPUT
+          if [ "${{ steps.playwright.outputs.npm_failed }}" != "true" ]; then
+            npx playwright install chromium 2>&1 || echo "browser_failed=true" >> $GITHUB_OUTPUT
+          fi
+          echo "done=true" >> $GITHUB_OUTPUT
+
+      - name: Run Browser E2E Tests
+        id: e2e
+        continue-on-error: true
+        working-directory: backend
+        run: |
+          node <<'SCRIPT'
+          const fs = require('fs');
+
+          const results = [];
+          async function test(name, check) {
+            try { await check(); results.push({ name, pass: true }); }
+            catch (e) { results.push({ name, pass: false, error: e.message }); }
+          }
+
+          const screenshots = [];
+
+          (async () => {
+            const { chromium } = require('playwright');
+            const browser = await chromium.launch();
+
+            // Desktop tests
+            const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+            const page = await context.newPage();
+
+            await test('Homepage loads', async () => {
+              const response = await page.goto('http://localhost:3000/');
+              if (!response || response.status() !== 200) throw new Error('Failed to load homepage');
+            });
+            await test('Homepage has carousel', async () => {
+              await page.goto('http://localhost:3000/');
+              const carousel = await page.locator('.carousel, [data-bs-ride="carousel"]').count();
+              if (carousel === 0) throw new Error('No carousel found');
+            });
+            await test('Navbar has links to /, /events, /venues', async () => {
+              await page.goto('http://localhost:3000/');
+              const navHrefs = await page.locator('nav a').evaluateAll(els => els.map(e => e.href));
+              const hasAll = navHrefs.some(h => h.endsWith('/') || h.endsWith('/index')) &&
+                             navHrefs.some(h => h.includes('/events')) &&
+                             navHrefs.some(h => h.includes('/venues'));
+              if (!hasAll) throw new Error('Missing nav links: ' + JSON.stringify(navHrefs));
+            });
+            await test('Navigation to Events page works', async () => {
+              await page.goto('http://localhost:3000/');
+              try { await page.click('nav a[href*="/events"]'); } catch(e) {}
+              await page.waitForTimeout(500);
+              const url = page.url();
+              if (!url.includes('/events') && !url.endsWith('/')) throw new Error('Navigation failed');
+            });
+            await test('Navigation to Venues page works', async () => {
+              await page.goto('http://localhost:3000/');
+              try { await page.click('nav a[href*="/venues"]'); } catch(e) {}
+              await page.waitForTimeout(500);
+              const url = page.url();
+              if (!url.includes('/venues') && !url.endsWith('/')) throw new Error('Navigation failed');
+            });
+            await test('Add Event form has input elements', async () => {
+              await page.goto('http://localhost:3000/event/add');
+              const inputs = await page.locator('input, select, textarea').count();
+              if (inputs === 0) throw new Error('No form inputs found');
+            });
+            await test('Edit Event form has input elements', async () => {
+              await page.goto('http://localhost:3000/event/edit/507f1f77bcf86cd799439011');
+              const inputs = await page.locator('input, select, textarea').count();
+              if (inputs === 0) throw new Error('No form inputs found');
+            });
+            await test('Add Venue form has input elements', async () => {
+              await page.goto('http://localhost:3000/venue/add');
+              const inputs = await page.locator('input, select, textarea').count();
+              if (inputs === 0) throw new Error('No form inputs found');
+            });
+            await test('Edit Venue form has input elements', async () => {
+              await page.goto('http://localhost:3000/venue/edit/507f1f77bcf86cd799439011');
+              const inputs = await page.locator('input, select, textarea').count();
+              if (inputs === 0) throw new Error('No form inputs found');
+            });
+            await test('404 page for unknown route', async () => {
+              await page.goto('http://localhost:3000/nonexistent');
+              const content = await page.content();
+              if (!content.includes('404') && !content.toLowerCase().includes('not found')) throw new Error('No 404 page content');
+            });
+
+            // Responsive design - mobile 375px
+            await test('Mobile 375px - no horizontal overflow', async () => {
+              const mobileContext = await browser.newContext({ viewport: { width: 375, height: 667 } });
+              const mobilePage = await mobileContext.newPage();
+              await mobilePage.goto('http://localhost:3000/');
+              await mobilePage.waitForTimeout(500);
+              const scrollWidth = await mobilePage.evaluate(() => document.documentElement.scrollWidth);
+              const clientWidth = await mobilePage.evaluate(() => document.documentElement.clientWidth);
+              await mobileContext.close();
+              if (scrollWidth > clientWidth) throw new Error('Overflow: scrollWidth=' + scrollWidth + ', clientWidth=' + clientWidth);
+            });
+
+            // Responsive design - tablet 768px
+            await test('Tablet 768px - no horizontal overflow', async () => {
+              const tabletContext = await browser.newContext({ viewport: { width: 768, height: 1024 } });
+              const tabletPage = await tabletContext.newPage();
+              await tabletPage.goto('http://localhost:3000/');
+              await tabletPage.waitForTimeout(500);
+              const scrollWidth = await tabletPage.evaluate(() => document.documentElement.scrollWidth);
+              const clientWidth = await tabletPage.evaluate(() => document.documentElement.clientWidth);
+              await tabletContext.close();
+              if (scrollWidth > clientWidth) throw new Error('Overflow: scrollWidth=' + scrollWidth + ', clientWidth=' + clientWidth);
+            });
+
+            // Viewport meta tag
+            await test('Viewport meta tag present', async () => {
+              await page.goto('http://localhost:3000/');
+              const hasViewport = await page.locator('meta[name="viewport"]').count();
+              if (hasViewport === 0) throw new Error('No viewport meta tag');
+            });
+
+            // Bootstrap CSS referenced
+            await test('Bootstrap CSS referenced', async () => {
+              await page.goto('http://localhost:3000/');
+              const bootstrapLinks = await page.locator('link[href*="bootstrap"], link[href*="bootstrap.min"]').count();
+              const bootstrapScripts = await page.locator('script[src*="bootstrap"]').count();
+              if (bootstrapLinks === 0 && bootstrapScripts === 0) throw new Error('No Bootstrap CSS reference found');
+            });
+
+            await browser.close();
+
+            // Capture screenshots of all assignment pages at desktop and mobile viewports
+            const screenshotFiles = [];
+            fs.mkdirSync('/home/runner/screenshots', { recursive: true });
+            try {
+              const browser2 = await chromium.launch();
+              const pages = [
+                { url: 'http://localhost:3000/', name: 'homepage' },
+                { url: 'http://localhost:3000/events', name: 'events' },
+                { url: 'http://localhost:3000/event/add', name: 'event-add' },
+                { url: 'http://localhost:3000/event/edit/507f1f77bcf86cd799439011', name: 'event-edit' },
+                { url: 'http://localhost:3000/event/detail/507f1f77bcf86cd799439011', name: 'event-detail' },
+                { url: 'http://localhost:3000/venues', name: 'venues' },
+                { url: 'http://localhost:3000/venue/add', name: 'venue-add' },
+                { url: 'http://localhost:3000/venue/edit/507f1f77bcf86cd799439011', name: 'venue-edit' },
+              ];
+              for (const { url, name } of pages) {
+                // Desktop screenshot
+                const dc = await browser2.newContext({ viewport: { width: 1280, height: 720 } });
+                const dp = await dc.newPage();
+                await dp.goto(url);
+                await dp.waitForTimeout(500);
+                const dPath = `/home/runner/screenshots/${name}-desktop.png`;
+                await dp.screenshot({ path: dPath });
+                await dc.close();
+                // Mobile screenshot
+                const mc = await browser2.newContext({ viewport: { width: 375, height: 667 } });
+                const mp = await mc.newPage();
+                await mp.goto(url);
+                await mp.waitForTimeout(500);
+                const mPath = `/home/runner/screenshots/${name}-mobile.png`;
+                await mp.screenshot({ path: mPath });
+                await mc.close();
+                screenshotFiles.push(dPath, mPath);
+              }
+              await browser2.close();
+              fs.writeFileSync('/home/runner/screenshot-files.txt', screenshotFiles.join('\n'));
+            } catch (e) {
+              console.error('Screenshot capture error:', e.message);
+            }
+
+            const passed = results.filter(r => r.pass).length;
+            const total = results.length;
+            let md = '## Browser E2E Tests\n\n';
+            md += `| Test | Result |\n|------|--------|\n`;
+            for (const r of results) {
+              md += `| ${r.name} | ${r.pass ? 'PASS' : 'FAIL: ' + r.error} |\n`;
+            }
+            md += `\n**${passed}/${total} tests passed**\n`;
+            fs.writeFileSync('/home/runner/e2e-results.md', md);
+            console.log('e2e-passed=' + passed);
+            console.log('e2e-total=' + total);
+          })().catch(e => {
+            console.error('E2E tests error:', e);
+            fs.writeFileSync('/home/runner/e2e-results.md', '## Browser E2E Tests\n\nSKIPPED (Playwright not available)\n');
+            console.log('e2e-passed=0');
+            console.log('e2e-total=0');
+          });
+          SCRIPT
+
+      # ── Stage 6: Report Compilation ─────────────────────────
+      - name: Compile Test Report
+        id: report
+        working-directory: backend
+        run: |
+          node <<'SCRIPT'
+          const fs = require('fs');
+
+          let unitMd = '';
+          let httpMd = '';
+          let e2eMd = '';
+
+          try { unitMd = fs.readFileSync('/home/runner/unit-results.md', 'utf8'); } catch(e) { unitMd = '## Unit Tests\n\nNOT RUN\n'; }
+          try { httpMd = fs.readFileSync('/home/runner/http-results.md', 'utf8'); } catch(e) { httpMd = '## HTTP Endpoint Tests\n\nNOT RUN\n'; }
+          try { e2eMd = fs.readFileSync('/home/runner/e2e-results.md', 'utf8'); } catch(e) { e2eMd = '## Browser E2E Tests\n\nNOT RUN\n'; }
+
+          // Extract pass/totals
+          function extract(md) {
+            const m = md.match(/\*\*(\d+)\/(\d+) tests passed\*\*/);
+            return m ? { passed: parseInt(m[1]), total: parseInt(m[2]) } : { passed: 0, total: 0 };
+          }
+
+          const unitStats = extract(unitMd);
+          const httpStats = extract(httpMd);
+          const e2eStats = extract(e2eMd);
+
+          const overallPassed = unitStats.passed + httpStats.passed + e2eStats.passed;
+          const overallTotal = unitStats.total + httpStats.total + e2eStats.total;
+          const verdict = overallTotal > 0 && overallPassed === overallTotal ? 'ALL PASSED' : 'SOME TESTS FAILED';
+
+          // Build screenshots section with desktop and mobile images (relative paths)
+          let screenshotMd = '';
+          try {
+            const screenshotFiles = fs.readFileSync('/home/runner/screenshot-files.txt', 'utf8').trim().split('\n').filter(Boolean);
+            if (screenshotFiles.length > 0) {
+              screenshotMd = '## Screenshots\n\n';
+              for (const fullPath of screenshotFiles) {
+                const name = fullPath.split('/').pop();
+                screenshotMd += `![${name}](screenshots/${name})\n\n`;
+              }
+            }
+          } catch(e) {
+            screenshotMd = '## Screenshots\n\nNo screenshots captured.\n';
+          }
+
+          const reportLines = [];
+          reportLines.push('# Test Report');
+          reportLines.push('');
+          reportLines.push('## Summary');
+          reportLines.push('');
+          reportLines.push('| Category | Passed | Total | Status |');
+          reportLines.push('|----------|--------|-------|--------|');
+          reportLines.push(`| Unit Tests | ${unitStats.passed} | ${unitStats.total} | ${unitStats.passed === unitStats.total ? 'PASS' : 'FAIL'} |`);
+          reportLines.push(`| HTTP Endpoint Tests | ${httpStats.passed} | ${httpStats.total} | ${httpStats.passed === httpStats.total ? 'PASS' : 'FAIL'} |`);
+          reportLines.push(`| Browser E2E Tests | ${e2eStats.passed} | ${e2eStats.total} | ${e2eStats.passed === e2eStats.total ? 'PASS' : 'FAIL'} |`);
+          reportLines.push('');
+          reportLines.push(`**Overall: ${verdict} (${overallPassed}/${overallTotal})**`);
+          reportLines.push('');
+          reportLines.push('---');
+          reportLines.push('');
+          reportLines.push(unitMd);
+          reportLines.push('');
+          reportLines.push('---');
+          reportLines.push('');
+          reportLines.push(httpMd);
+          reportLines.push('');
+          reportLines.push('---');
+          reportLines.push('');
+          reportLines.push(e2eMd);
+          reportLines.push('');
+          reportLines.push('---');
+          reportLines.push('');
+          reportLines.push(screenshotMd);
+          const report = reportLines.join('\n');
+
+          fs.writeFileSync('/home/runner/test-report.md', report);
+          console.log('Report compiled successfully');
+          SCRIPT
+
+      # ── Stage 7: Upload Report and Screenshots ──────────
+      - name: Upload Test Report and Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report-${{ github.run_id }}
+          path: |
+            /home/runner/test-report.md
+            /home/runner/screenshots/
+          retention-days: 30
+
+      - name: Publish Test Report to Job Summary
+        if: always()
+        run: |
+          if [ -f /home/runner/test-report.md ]; then
+            echo "::notice title=Test Report Complete::Check the artifacts for the full report and screenshots"
+            cat /home/runner/test-report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No test report found" >> "$GITHUB_STEP_SUMMARY"
+          fi

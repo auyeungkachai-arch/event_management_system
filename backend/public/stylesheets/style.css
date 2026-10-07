@@ -1,0 +1,43 @@
+body {
+  /* padding: 50px; */
+  font:
+    14px "Lucida Grande",
+    Helvetica,
+    Arial,
+    sans-serif;
+}
+
+a {
+  color: #00b7ff;
+}
+.custom-overlay-box {
+  /* Position the box dead-center over the carousel image */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  bottom: auto !important;
+
+  /* Box dimensions */
+  width: 65%;
+  max-width: 680px;
+  padding: 2rem 1.5rem;
+
+  /* Semi-transparent dark grey background */
+  background-color: rgba(20, 30, 40, 0.45);
+
+  /* Frosted glass effect */
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+
+  /* Styling */
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Mobile responsiveness: Expand width on smaller screens */
+@media (max-width: 768px) {
+  .custom-overlay-box {
+    width: 90%;
+    padding: 1.25rem 1rem;
+  }
+}
