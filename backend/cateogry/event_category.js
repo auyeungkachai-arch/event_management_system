@@ -15,4 +15,7 @@ const CATEGORIES = [
 
 const STATUSES = ["Upcoming", "Ongoing", "Completed", "Cancelled"];
 
-const VENUES = new map();
+module.exports = {
+  CATEGORIES,
+  STATUSES,
+};

@@ -118,19 +118,18 @@
             ></textarea>
           </div>
 
-          
+          <!-- Category & Date & Time Row -->
           <div class="row g-3 mb-3">
             <!-- Category -->
             <div class="col-md-6">
               <label for="category" class="form-label">Category <span class="text-danger">*</span></label>
               <select class="form-select" id="category" name="category" required>
-                <% if (typeof Category !== 'undefined' && Category.length > 0) { %>
-                <% for (let i = 0; i < Category.length; i++) { %>
-                <option value="<%= Category[i] %>"><%= Category[i] %></option>
-                <% } %>
-                <% } %>
                 <option value="" disabled selected>Select Category</option>
-             
+                <% if (typeof Category !== 'undefined' && Category.length > 0) { %>
+                  <% for (let i = 0; i < Category.length; i++) { %>
+                    <option value="<%= Category[i] %>"><%= Category[i] %></option>
+                  <% } %>
+                <% } %>
               </select>
             </div>
 
@@ -181,9 +180,11 @@
               <label for="venue" class="form-label">Venue</label>
               <select class="form-select" id="venue" name="venue">
                 <option value="" selected>No Venue</option>
-                <% if (typeof venues !== 'undefined' && venues.length > 0) { %>
-                  <% venues.forEach(function(v) { %>
-                    <option value="<%= v._id %>"><%= v.name %></option>
+                <% if (typeof venues !== 'undefined' && venues.size > 0) { %>
+                  <% venues.forEach(function(venueObj, venueKey) { %>
+                    <option value="<%= venueObj._id || venueKey %>" data-capacity="<%= venueObj %>">
+                      <%= venueObj.name || venueKey %> (Cap: <%= venueObj %>)
+                    </option>
                   <% }); %>
                 <% } %>
               </select>
@@ -193,10 +194,17 @@
             <div class="col-md-6">
               <label for="status" class="form-label">Status</label>
               <select class="form-select" id="status" name="status">
-                <% if (typeof Category !== 'undefined' && Category.length > 0) { %>
-                <% for (let i = 0; i < Category.length; i++) { %>
-                <option value="<%= Category[i] %>"><%= Category[i] %></option>
-                <% } %>
+                <% if (typeof Status !== 'undefined' && Status.length > 0) { %>
+                  <% for (let i = 0; i < Status.length; i++) { %>
+                    <option value="<%= Status[i] %>" <%= Status[i] === 'Upcoming' ? 'selected' : '' %>>
+                      <%= Status[i] %>
+                    </option>
+                  <% } %>
+                <% } else { %>
+                  <option value="Upcoming" selected>Upcoming</option>
+                  <option value="Ongoing">Ongoing</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Cancelled">Cancelled</option>
                 <% } %>
               </select>
             </div>
@@ -246,6 +254,30 @@
       <small>© 2026 Science Faculty Event Management System. All rights reserved.</small>
     </div>
   </footer>
+
+  <!-- Dynamic Capacity Validation Script -->
+  <script>
+    const capacityInput = document.getElementById('capacity');
+    const venueSelect = document.getElementById('venue');
+
+    capacityInput.addEventListener('input', function () {
+      const reqCap = parseInt(this.value, 10) || 0;
+
+      Array.from(venueSelect.options).forEach(option => {
+        if (!option.value) return; // Skip "No Venue" option
+
+        const venueCap = parseInt(option.getAttribute('data-capacity'), 10) || 0;
+
+        if (venueCap < reqCap) {
+          option.disabled = true;
+          option.textContent = `${option.textContent.split(' (')[0]} (Cap: ${venueCap} - Too Small)`;
+        } else {
+          option.disabled = false;
+          option.textContent = `${option.textContent.split(' (')[0]} (Cap: ${venueCap})`;
+        }
+      });
+    });
+  </script>
 
   <!-- Bootstrap 5 JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

@@ -2,7 +2,7 @@ var express = require("express");
 var router = express.Router();
 const { connectToDB, ObjectId } = require("../utils/db");
 const { name } = require("ejs");
-
+const { CATEGORIES, STATUSES } = require("../cateogry/event_category.js");
 /* GET home page. */
 router.get("/", async function (req, res, next) {
   try {
@@ -134,11 +134,11 @@ router.get("/events", async function (req, res) {
 router.get("/event/add", async function (req, res) {
   try {
     const db = await connectToDB();
-    VENUES = await get_venue(db);
-    res.render("create_events", {
+    venue = await get_venues_map(db);
+    res.render("create_event", {
       Category: CATEGORIES,
       Status: STATUSES,
-      venues: VENUES,
+      venues: venue,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -189,10 +189,21 @@ function formatted_Date(date) {
 }
 
 // helper function to get venue
-async function get_venue(db) {
-  let venue = await db.collection("venues").find().toArray();
-  venue.forEach(function (v) {
-    VENUES.set(v.name, v.capacity);
-  });
+// 做法 A：直接回傳一個 Map 物件（推薦）
+async function get_venues_map(db) {
+  try {
+    const venues = await db.collection("venues").find().toArray();
+
+    // 使用 Map 結構 (Key: name, Value: capacity)
+    const venueMap = new Map();
+    venues.forEach((v) => {
+      venueMap.set(v.name, v.capacity);
+    });
+
+    return venueMap;
+  } catch (err) {
+    console.error("Error loading venues map:", err);
+    return new Map();
+  }
 }
 module.exports = router;
