@@ -130,7 +130,20 @@ router.get("/events", async function (req, res) {
   }
 });
 
-// create event
+//render create event page
+router.get("/event/add", async function (req, res) {
+  try {
+    const db = await connectToDB();
+    VENUES = await get_venue(db);
+    res.render("create_events", {
+      Category: CATEGORIES,
+      Status: STATUSES,
+      venues: VENUES,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 // to all venue page
 router.get("/venues", async function (req, res) {
@@ -172,6 +185,14 @@ function formatted_Date(date) {
     hour: "numeric", // "10"
     minute: "2-digit", // "00"
     hour12: true, // "AM/PM")
+  });
+}
+
+// helper function to get venue
+async function get_venue(db) {
+  let venue = await db.collection("venues").find().toArray();
+  venue.forEach(function (v) {
+    VENUES.set(v.name, v.capacity);
   });
 }
 module.exports = router;
