@@ -92,7 +92,7 @@
 
       <!-- Form Container Card -->
       <div class="card form-card shadow-sm p-4 border-0">
-        <form action="/events/create" method="POST">
+        <form action="/event" method="POST">
 
           <!-- Title -->
           <div class="mb-3">
@@ -182,7 +182,7 @@
                 <option value="" selected>No Venue</option>
                 <% if (typeof venues !== 'undefined' && venues.size > 0) { %>
                   <% venues.forEach(function(venueObj, venueKey) { %>
-                    <option value="<%= venueObj._id || venueKey %>" data-capacity="<%= venueObj %>">
+                    <option value="<%=venueKey %>" data-capacity="<%= venueObj %>">
                       <%= venueObj.name || venueKey %> (Cap: <%= venueObj %>)
                     </option>
                   <% }); %>
@@ -239,7 +239,7 @@
           <!-- Submit & Cancel Buttons -->
           <div class="d-flex gap-2">
             <button type="submit" class="btn btn-primary px-3 fw-medium">Save Event</button>
-            <a href="/events" class="btn btn-outline-secondary px-3">Cancel</a>
+            <a href="/event" class="btn btn-outline-secondary px-3">Cancel</a>
           </div>
 
         </form>

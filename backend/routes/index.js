@@ -3,6 +3,7 @@ var router = express.Router();
 const { connectToDB, ObjectId } = require("../utils/db");
 const { name } = require("ejs");
 const { CATEGORIES, STATUSES } = require("../cateogry/event_category.js");
+const { FACILITIES_ENUM } = require("../cateogry/venue_category.js");
 /* GET home page. */
 router.get("/", async function (req, res, next) {
   try {
@@ -131,7 +132,7 @@ router.get("/events", async function (req, res) {
 });
 
 //render create event page
-router.get("/event/add", async function (req, res) {
+router.get("/events/add", async function (req, res) {
   try {
     const db = await connectToDB();
     venue = await get_venues_map(db);
@@ -145,6 +146,31 @@ router.get("/event/add", async function (req, res) {
   }
 });
 
+// post event handler
+router.post("/event", async function (req, res) {
+  const db = await connectToDB();
+  try {
+    const venueName = req.body.venue;
+
+    const venueRecord = await db
+      .collection("venues")
+      .findOne({ name: venueName });
+    if (!venueRecord) {
+      return res.status(400).json({ message: "venue not found" });
+    }
+    console.log(venueRecord._id);
+    req.body.capacity = parseInt(req.body.capacity);
+    req.body.isHighlighted = req.body.isHighlighted ? true : false;
+    req.body.venue = venueRecord._id;
+
+    let result = await db.collection("events").insertOne(req.body);
+    res.status(200).json({ message: req.body }); // need changes : redirect to get event/detail/:id page
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ------------------------------------------------------------------   start of venue
 // to all venue page
 router.get("/venues", async function (req, res) {
   const db = await connectToDB();
@@ -155,8 +181,19 @@ router.get("/venues", async function (req, res) {
     res.status(500).json({ message: err.message });
   }
 });
+// create venue page
+router.get("/venue/add", async function (req, res) {
+  try {
+    const db = await connectToDB();
+    res.render("create_venue", {
+      Facilities: FACILITIES_ENUM,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
-// helper function to map venue name and format date
+// helper function to map venue name and format date db -> frontend
 async function enrich_event_details(db, eventsArray) {
   if (!Array.isArray(eventsArray) || eventsArray.length === 0) {
     return [];
