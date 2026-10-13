@@ -19,7 +19,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-// 靜態檔案託管 (必須放在 Routes 之前！)
 app.use(express.static(path.join(__dirname, "public")));
 
 // Routes setup

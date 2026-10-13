@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>網頁標題</title>
+    <title>scifac event</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -79,14 +79,14 @@
               style="height: 400px; object-fit: cover"
             />
             
-            <!-- 文字覆蓋區塊 -->
+            
             <div class="carousel-caption custom-overlay-box">
               <h2 class="fw-bold text-white mb-2"><%= highlight.title %></h2>
               <p class="mb-3 text-light opacity-75 fs-6">
                 <%= highlight.formattedDate %> 
                 <% if (highlight.venue) { %> - <%= highlight.venueName%><% } %>
               </p>
-              <!-- 修正後的動態連結 -->
+              
               <a href="/events/detail/<%= highlight._id %>" class="btn btn-primary px-4 py-2">
                 View Details
               </a>

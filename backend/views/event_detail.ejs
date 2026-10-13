@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SciFac Events - <%= event.title %></title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .main-content {
+      flex: 1;
+    }
+    .event-banner {
+      width: 100%;
+      height: 340px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+    .details-card {
+      background: #ffffff;
+      border: 1px solid #eaeaea;
+      border-radius: 8px;
+    }
+    .badge-status-upcoming {
+      background-color: #198754;
+      font-weight: 500;
+    }
+    .badge-category {
+      background-color: #0d6efd;
+      font-weight: 500;
+    }
+    .badge-highlight {
+      background-color: #ffc107;
+      color: #000;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="/"> 
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          fill="#0d6efd"
+          class="bi bi-flask-fill"
+          viewBox="0 0 16 16"
+        >
+          <path
+            d="M4.085 1H11.915C12.35 1 12.5 1.458 12.186 1.743L10.5 3.28V7.32l3.414 5.69c.473.788-.1 1.99-1.026 1.99H3.112c-.926 0-1.5-1.202-1.026-1.99L5.5 7.32V3.28L3.814 1.743C3.5 1.458 3.65 1 4.085 1z"
+          />
+        </svg>
+        SciFac Events
+      </a>
+
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#navbarSupportedContent"
+        aria-controls="navbarSupportedContent"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-2">
+          <li class="nav-item">
+            <a class="nav-link" href="/">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="/events">Events</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/venues">Venues</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Area -->
+  <main class="main-content py-4">
+    <div class="container" style="max-width: 1100px;">
+      
+      <!-- Breadcrumb -->
+      <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item"><a href="/events" class="text-decoration-none">Events</a></li>
+          <li class="breadcrumb-item active text-secondary" aria-current="page"><%= event.title %></li>
+        </ol>
+      </nav>
+
+      <!-- Banner Image -->
+      <% if (event.bannerImage) { %>
+        <div class="mb-4">
+          <img src="<%= event.bannerImage %>" alt="<%= event.title %>" class="event-banner shadow-sm">
+        </div>
+      <% } else { %>
+        <!-- Fallback Banner if none provided -->
+        <div class="mb-4 bg-secondary text-white d-flex align-items-center justify-content-center event-banner shadow-sm">
+          <span class="fs-4">No Banner Image</span>
+        </div>
+      <% } %>
+
+      <!-- Header Row: Badges, Title & Edit Button -->
+      <div class="row align-items-start mb-4">
+        <div class="col-lg-8">
+          <!-- Badges -->
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <% if (event.category) { %>
+              <span class="badge badge-category rounded-2 px-2 py-1"><%= event.category %></span>
+            <% } %>
+            <% if (event.status) { %>
+              <span class="badge badge-status-upcoming rounded-2 px-2 py-1"><%= event.status %></span>
+            <% } %>
+            <% if (event.isHighlighted) { %>
+              <span class="badge badge-highlight rounded-2 px-2 py-1">
+                <i class="bi bi-star-fill me-1"></i> Highlighted
+              </span>
+            <% } %>
+          </div>
+
+          <!-- Event Title -->
+          <h1 class="fw-bold text-dark m-0 display-6"><%= event.title %></h1>
+        </div>
+
+        <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+          <a href="/event/edit/<%= event._id %>"  class="btn btn-outline-secondary d-inline-flex align-items-center gap-2 px-3 py-2 fw-medium">
+            <i class="bi bi-pencil"></i>
+            Edit Event
+          </a>
+        </div>
+      </div>
+
+      <!-- Content Grid (Left: Info, Right: Details Card) -->
+      <div class="row g-4">
+        <!-- Left Column: Description & Speaker -->
+        <div class="col-lg-8">
+          <!-- Description -->
+          <div class="mb-4">
+            <h5 class="fw-bold text-dark mb-2">Description</h5>
+            <p class="text-secondary lh-base" style="white-space: pre-line;">
+              <%= event.description || "No description provided." %>
+            </p>
+          </div>
+
+          <!-- Organizer / Speaker -->
+          <div class="mb-4">
+            <h5 class="fw-bold text-dark mb-2">Organizer / Speaker</h5>
+            <p class="text-secondary d-flex align-items-center gap-2 m-0">
+              <i class="bi bi-person-fill fs-5"></i>
+              <span><%= event.speaker || "Not specified" %></span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Right Column: Event Details Card -->
+        <div class="col-lg-4">
+          <div class="card details-card shadow-sm p-3 border-0">
+            <h6 class="fw-bold text-dark pb-2 border-bottom mb-3">Event Details</h6>
+
+            <!-- Date -->
+            <div class="mb-3">
+              <div class="text-dark fw-semibold small d-flex align-items-center gap-2 mb-1">
+                <i class="bi bi-calendar text-primary"></i>
+                Date:
+              </div>
+              <div class="text-secondary small ps-4">
+                <%= event.formattedDate || event.dateTime %>
+              </div>
+            </div>
+
+            <!-- Capacity -->
+            <div class="mb-3">
+              <div class="text-dark fw-semibold small d-flex align-items-center gap-2 mb-1">
+                <i class="bi bi-people text-primary"></i>
+                Capacity:
+              </div>
+              <div class="text-secondary small ps-4">
+                <%= event.capacity %> attendees
+              </div>
+            </div>
+
+            <!-- Venue -->
+            <div class="mb-1">
+              <div class="text-dark fw-semibold small d-flex align-items-center gap-2 mb-1">
+                <i class="bi bi-geo-alt text-primary"></i>
+                Venue:
+              </div>
+              <div class="text-secondary small ps-4">
+                <% if (event.venueName) { %>
+                  <a href="/venues" class="text-primary text-decoration-none fw-medium d-block">
+                    <%= event.venueName %>
+                  </a>
+                  <span class="text-muted d-block mt-1"><%= event.venueLocation %></span>
+                <% } else { %>
+                  <span>No Venue Assigned</span>
+                <% } %>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-dark text-white-50 text-center py-3 fs-7 mt-auto">
+    <div class="container">
+      <small>© 2026 Science Faculty Event Management System. All rights reserved.</small>
+    </div>
+  </footer>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

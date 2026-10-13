@@ -32,7 +32,6 @@ router.get("/", async function (req, res, next) {
   }
 });
 
-// testing for only get highlighted event
 router.get("/highlight", async function (req, res, next) {
   const db = await connectToDB();
   try {
@@ -46,45 +45,23 @@ router.get("/highlight", async function (req, res, next) {
     res.status(500).json({ message: err.message });
   }
 });
-//testing for getting venue name by id
-
-// router.get("/:id", async function (req, res, next) {
-//   try {
-//     const db = await connectToDB();
-
-//     // 1. 補上 await 確保順利取得解析後的結果
-//     let venue_name = await get_venue_by_id(db, req.params.id);
-
-//     if (!venue_name) {
-//       return res.status(404).json({ message: "找不到該場地" });
-//     }
-
-//     res.json({ nameid: venue_name });
-//   } catch (err) {
-//     res.status(500).json({ message: err.message });
-//   }
-// });
 
 async function get_venue_by_id(db, venue_id) {
   try {
-    // 2. 檢查並轉換 ID 為 MongoDB 的 ObjectId
     let query = ObjectId.isValid(venue_id)
       ? { _id: new ObjectId(venue_id) }
       : { _id: venue_id };
 
-    // 3. 使用 findOne() 取得單一場地文件
     let target_venue = await db.collection("venues").findOne(query);
 
     console.log("找到的場地：", target_venue);
 
-    // 4. 安全地回傳場地名稱或 null
     return target_venue ? target_venue.name : null;
   } catch (err) {
     console.error("Error fetching venue by id:", err);
-    return null; // 發生錯誤時回傳 null
+    return null;
   }
 }
-//testing for getting venue name by id
 
 async function get_upcoming_event(db) {
   try {
@@ -99,7 +76,7 @@ async function get_upcoming_event(db) {
     return upcoming_events;
   } catch (err) {
     console.error("Error fetching upcoming events:", err);
-    return []; // 發生錯誤時回傳空陣列避免前端崩潰
+    return [];
   }
 }
 
@@ -150,21 +127,131 @@ router.get("/events/add", async function (req, res) {
 router.post("/event", async function (req, res) {
   const db = await connectToDB();
   try {
+    req.body.capacity = parseInt(req.body.capacity);
+    req.body.isHighlighted = req.body.isHighlighted ? true : false;
     const venueName = req.body.venue;
 
     const venueRecord = await db
       .collection("venues")
       .findOne({ name: venueName });
-    if (!venueRecord) {
-      return res.status(400).json({ message: "venue not found" });
+    if (venueRecord) {
+      req.body.venue = venueRecord._id;
     }
-    console.log(venueRecord._id);
-    req.body.capacity = parseInt(req.body.capacity);
-    req.body.isHighlighted = req.body.isHighlighted ? true : false;
-    req.body.venue = venueRecord._id;
 
     let result = await db.collection("events").insertOne(req.body);
-    res.status(200).json({ message: req.body }); // need changes : redirect to get event/detail/:id page
+    res.redirect(`/event/detail/${result.insertedId}`);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.get("/event/detail/:id", async function (req, res) {
+  const db = await connectToDB();
+  try {
+    let target_event = await find_by_id(db, req.params.id, "events");
+
+    if (!target_event) {
+      return res.status(404).json({ message: "event id not found" });
+    }
+
+    const venueName = await get_venue_by_id(db, target_event.venue);
+    const venueRecord = target_event.venue
+      ? await db.collection("venues").findOne({ _id: target_event.venue })
+      : null;
+
+    target_event.venueName = venueName || "TBD";
+    target_event.venueLocation = venueRecord ? venueRecord.location : "";
+    target_event.formattedDate = await formatted_Date(target_event.dateTime);
+
+    res.render("event_detail", { event: target_event });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+//edit event page
+router.get("/event/edit/:id", async function (req, res) {
+  const db = await connectToDB();
+  try {
+    const get_event = await find_by_id(db, req.params.id, "events");
+
+    if (!get_event) {
+      res.status(404).json({ message: "id not found" });
+    } else {
+      const venues = await get_venues_map(db);
+      const venue_name = await get_venue_by_id(db, get_event.venue);
+      res.render("edit_event", {
+        Facilities: FACILITIES_ENUM,
+        event: get_event,
+        venues: venues,
+        Category: CATEGORIES,
+        Status: STATUSES,
+        venue_name: venue_name,
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+// update event
+router.post("/event/edit/:id", async function (req, res) {
+  const db = await connectToDB();
+  try {
+    const eventId = req.params.id;
+
+    if (!ObjectId.isValid(eventId)) {
+      return res.status(400).json({ message: "invalid event id format" });
+    }
+    let venueId = null;
+    if (req.body.venue && req.body.venue.trim() !== "") {
+      venueId = new ObjectId(req.body.venue);
+    }
+
+    const updatedData = {
+      title: req.body.title,
+      description: req.body.description,
+      category: req.body.category,
+      dateTime: req.body.dateTime,
+      speaker: req.body.speaker,
+      capacity: parseInt(req.body.capacity, 10),
+      venue: venueId,
+      status: req.body.status,
+      bannerImage: req.body.bannerImage,
+      isHighlighted: req.body.isHighlighted === "true",
+    };
+
+    const result = await db
+      .collection("events")
+      .updateOne({ _id: new ObjectId(eventId) }, { $set: updatedData });
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "event id not found" });
+    }
+
+    res.redirect(`/event/detail/${eventId}`);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.post("/event/delete/:id", async function (req, res) {
+  const db = await connectToDB();
+  try {
+    const eventId = req.params.id;
+
+    if (!ObjectId.isValid(eventId)) {
+      return res.status(400).json({ message: "invalid event id format" });
+    }
+
+    const result = await db
+      .collection("events")
+      .deleteOne({ _id: new ObjectId(eventId) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: "event id not found" });
+    }
+
+    res.redirect("/events");
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -181,10 +268,10 @@ router.get("/venues", async function (req, res) {
     res.status(500).json({ message: err.message });
   }
 });
-// create venue page
+
+//create venue page
 router.get("/venue/add", async function (req, res) {
   try {
-    const db = await connectToDB();
     res.render("create_venue", {
       Facilities: FACILITIES_ENUM,
     });
@@ -192,6 +279,125 @@ router.get("/venue/add", async function (req, res) {
     res.status(500).json({ message: err.message });
   }
 });
+
+//post venue handler
+router.post("/venue", async function (req, res) {
+  const db = await connectToDB();
+  try {
+    req.body.capacity = parseInt(req.body.capacity);
+
+    // ensure the facilities is always an array even there is only one facility
+    if (req.body.facilities) {
+      if (!Array.isArray(req.body.facilities)) {
+        req.body.facilities = [req.body.facilities];
+      }
+    } else {
+      req.body.facilities = [];
+    }
+
+    let result = await db.collection("venues").insertOne(req.body);
+
+    res.redirect("/venues");
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+//edit venue page
+router.get("/venue/edit/:id", async function (req, res) {
+  const db = await connectToDB();
+  try {
+    const get_venue = await find_by_id(db, req.params.id, "venues");
+    if (!get_venue) {
+      res.status(404).json({ message: "id not found" });
+    } else {
+      const venue = res.render("edit_venue", {
+        Facilities: FACILITIES_ENUM,
+        venue: get_venue,
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// update venue handler
+router.post("/venue/:id", async function (req, res) {
+  const db = await connectToDB();
+  try {
+    const venueId = req.params.id;
+
+    if (!ObjectId.isValid(venueId)) {
+      return res.status(400).json({ message: "invalid venue id format" });
+    }
+
+    req.body.capacity = parseInt(req.body.capacity, 10);
+
+    if (req.body.facilities) {
+      if (!Array.isArray(req.body.facilities)) {
+        req.body.facilities = [req.body.facilities];
+      }
+    } else {
+      req.body.facilities = [];
+    }
+
+    const updatedData = {
+      name: req.body.name,
+      location: req.body.location,
+      capacity: req.body.capacity,
+      description: req.body.description,
+      facilities: req.body.facilities,
+    };
+
+    const result = await db
+      .collection("venues")
+      .updateOne({ _id: new ObjectId(venueId) }, { $set: updatedData });
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "venue id not found" });
+    }
+
+    res.redirect("/venues");
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// delete venue handler
+router.post("/venue/delete/:id", async function (req, res) {
+  const db = await connectToDB();
+  try {
+    const venueId = req.params.id;
+
+    if (!ObjectId.isValid(venueId)) {
+      return res.status(400).json({ message: "invalid venue id format" });
+    }
+
+    const result = await db
+      .collection("venues")
+      .deleteOne({ _id: new ObjectId(venueId) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: "venue id not found" });
+    }
+
+    res.redirect("/venues");
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+//helper function to see if venue or event exists using their id
+async function find_by_id(db, Id, type) {
+  //type is either events / venues
+  if (!ObjectId.isValid(Id) || (type != "venues") & (type != "events")) {
+    return null;
+  }
+
+  const Object = await db.collection(type).findOne({ _id: new ObjectId(Id) });
+
+  return Object;
+}
 
 // helper function to map venue name and format date db -> frontend
 async function enrich_event_details(db, eventsArray) {
@@ -202,7 +408,7 @@ async function enrich_event_details(db, eventsArray) {
   return await Promise.all(
     eventsArray.map(async (event) => {
       const venueName = await get_venue_by_id(db, event.venue);
-      const formattedDate = formatted_Date(event.dateTime);
+      const formattedDate = await formatted_Date(event.dateTime);
 
       return {
         ...event,
@@ -214,27 +420,28 @@ async function enrich_event_details(db, eventsArray) {
 }
 
 //helper function to format date
-function formatted_Date(date) {
+async function formatted_Date(date) {
   return new Date(date).toLocaleString("en-US", {
-    month: "short", // "Nov"
-    day: "numeric", // "1"
-    year: "numeric", // "2026"
-    hour: "numeric", // "10"
-    minute: "2-digit", // "00"
-    hour12: true, // "AM/PM")
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
   });
 }
 
-// helper function to get venue
-// 做法 A：直接回傳一個 Map 物件（推薦）
 async function get_venues_map(db) {
   try {
     const venues = await db.collection("venues").find().toArray();
 
-    // 使用 Map 結構 (Key: name, Value: capacity)
     const venueMap = new Map();
     venues.forEach((v) => {
-      venueMap.set(v.name, v.capacity);
+      venueMap.set(v._id.toString(), {
+        name: v.name,
+        capacity: v.capacity,
+        location: v.location,
+      });
     });
 
     return venueMap;
